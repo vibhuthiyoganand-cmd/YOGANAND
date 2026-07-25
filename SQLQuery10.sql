@@ -123,3 +123,146 @@ tablock
 )
 
 select * from bronze.erp_px_cat_g1v2
+
+
+use datawarehouse5;
+
+select * from bronze.crm_prd_info;
+
+select * from bronze.crm_prd_info;
+
+select * from bronze.erp_cust_az12;
+
+
+https://github.com/Anudeep423/sql_datawarehouse_proj
+
+
+
+-- primary key must be unique and not null
+
+-- Writing a query to check if any duplicates are there in pl(cst_id) or not
+
+select
+cst_id,
+count(*)
+from bronze.crm_cust_info
+group by cst_id
+having count(*)>1 or cst_id is null;
+
+select * from bronze.crm_cust_info where cst_id = 29466;
+
+-- we want to pick the latest one based on the create data
+
+select
+cst_id,
+cst_key,
+trim(cst_firstname) as cst_firstname,
+trim(cst_lastname) as cst_lastname,
+case
+when trim(upper(cst_marital_status)) = 'S' then 'Singal'
+when trim(upper(cst_marital_status)) = 'M' then 'Married'
+else 'n/a'
+end as cst_marital_status,
+case
+when trim(upper(cst_gndr)) = 'M' then 'Male'
+when trim(upper(cst_gndr)) = 'F' then 'female'
+else 'n/a'
+end as cst_gndr,
+cst_create_date
+from(
+select
+*,
+row_number() over(
+partition by cst_id
+order by cst_create_date desc)as flag_last
+from bronze.crm_cust_info
+) as t
+where flag_last = 1 and cst_id is not null;
+
+
+-- check for unwanted space in firstname
+
+select cst_firstname from bronze.crm_cust_info
+where cst_firstname !=trim(cst_firstname)
+
+
+-- check for unwanted space in firstname
+
+select cst_lastname from bronze.crm_cust_info
+where cst_lastname !=trim(cst_lastname)
+
+
+-- check for unwanted space in gander
+
+select cst_gndr from bronze.crm_cust_info
+where cst_gndr !=trim(cst_gndr)
+
+-- lets check value in gander columns
+
+select distinct cst_gndr
+from bronze.crm_cust_info
+
+
+-- lets check value in marital status columns
+
+select distinct cst_marital_status
+from bronze.crm_cust_info
+
+-- silver tables----------------------------------------------------------------------
+
+
+drop table silver.crm_cust_info
+
+CREATE TABLE silver.crm_cust_info (
+    cst_id             INT,
+    cst_key            NVARCHAR(50),
+    cst_firstname      NVARCHAR(50),
+    cst_lastname       NVARCHAR(50),
+    cst_marital_status NVARCHAR(50),
+    cst_gndr           NVARCHAR(50),
+    cst_create_date    DATE,
+    dwh_create_date    DATETIME2 DEFAULT GETDATE()
+);
+
+
+
+   
+insert into silver.crm_cust_info(
+cst_id             ,
+    cst_key            ,
+    cst_firstname      ,
+    cst_lastname       ,
+    cst_marital_status ,
+    cst_gndr          ,
+    cst_create_date   
+    )
+
+	  SELECT 
+cst_id,
+cst_key,
+TRIM(cst_firstname) as cst_firstname,
+TRIM(cst_lastname) as cst_lastname,
+CASE
+  when trim(upper(cst_marital_status)) = 'S' then 'single'
+  when trim(upper(cst_marital_status)) = 'M' then 'Married'
+else 'n/a'
+end as cst_marital_status
+,
+CASE
+  when trim(upper(cst_gndr)) = 'M' then 'Male'
+  when trim(upper(cst_gndr)) = 'F' then 'Female'
+else 'n/a'
+end as cst_gndr,
+cst_create_date
+FROM(
+SELECT
+*,
+Row_number() over(
+partition by cst_id
+order by cst_create_date DESC) as flag_last
+from bronze.crm_cust_info
+) AS T
+WHERE flag_last = 1 and cst_id is not null;
+
+
+select * from  silver.crm_cust_info
