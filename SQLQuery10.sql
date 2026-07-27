@@ -210,6 +210,8 @@ from bronze.crm_cust_info
 
 -- silver tables----------------------------------------------------------------------
 
+create schema silver;
+
 
 drop table silver.crm_cust_info
 
@@ -265,4 +267,78 @@ from bronze.crm_cust_info
 WHERE flag_last = 1 and cst_id is not null;
 
 
-select * from  silver.crm_cust_info
+select * from bronze.crm_prd_info;
+
+
+
+
+-- checking if prd_id has any null or duplicates SELECT prd_id,
+
+select prd_id,
+count(*) as prd_id_count
+from bronze.crm_prd_info 
+group by prd_id
+having count(*) > 1 or prd_id is null;
+
+
+SELECT * FROM bronze.crm_prd_info
+
+select*,
+replace (substring(prd_key,1,5),'_','_') as cat_id,
+substring(prd_key,7,len(prd_key)) as cat_id
+from bronze.crm_prd_info;
+
+SELECT * FROM bronze.crm_prd_info
+
+
+select * from bronze.erp_px_cat_g1v2;
+
+-- check if prd_nm has any unwanted space
+
+select prd_nm
+from bronze.crm_prd_info
+where prd_nm!= trim(prd_nm)
+
+-- Replace PRD COST with 0
+
+SELECT*,prd_id,
+prd_nm,
+REPLACE( SUBSTRING (prd_key, 1,5),'-','_') as cat_id,
+SUBSTRING(prd_key, 7, len(prd_key)) as cat_id,
+isnull(prd_cost, 0) as prd_cost_values,
+CASE
+when upper(trim(prd_line))= 'M' then 'Mountain'
+when upper(trim(prd_line))= 'S' then ' other Sales'
+when upper(trim(prd_line))= 'R' then 'Road'
+when upper(trim(prd_line))= 'T' then 'Touring'
+else 'n/a'
+end_data_line
+cast(prd_start_dt as date) as prd_start_dt,
+cast(lead(prd_start_dt) over (partition by prd_key order by prd_start_dt) - 1 as date)
+as prd_end_data
+from bronze.crm_prd_info;
+
+
+
+-- lets check if the stae=rt data is less than end data
+
+SELECT * FROM bronze.crm_prd_info
+where prd_end_dt < prd_start_dt;
+
+SELECT * FROM bronze.crm_prd_info
+where prd_id = 212  or prd_id =213 or prd_id = 214;
+
+
+select
+prd_id,
+prd_key,
+cast(prd_start_dt as date) as prd_start_dt,
+cast(lead(prd_start_dt) over (partition by prd_key order by prd_start_dt) - 1 as date)
+as prd_end_data
+from bronze.crm_prd_info;
+
+
+SELECT * FROM bronze.crm_prd_info
+
+
+select * from bronze.erp_px_cat_g1v2;
